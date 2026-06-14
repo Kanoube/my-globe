@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://unpkg.com/globe.gl"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@300;400;500;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght=300;400;500;700&display=swap');
         body { font-family: 'Noto Sans HK', sans-serif; }
         #globeViz { width: 100%; height: 500px; background-color: #0b1329; border-radius: 1rem; overflow: hidden; }
         .hidden { display: none !important; }
@@ -182,6 +182,7 @@
         let currentType = 'Flight'; 
         let currentUser = null;
         let globe = null;
+        let globalJourneysBackup = []; // 緩存數據用以觸發滾動動畫
         
         let airportDatabase = [];
         
@@ -289,7 +290,6 @@
             return Math.round(R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))); 
         }
 
-        // 格式化時間 (分鐘 ➡️ 〇小時〇分)
         function formatMinutesToHours(totalMinutes) {
             if (!totalMinutes || totalMinutes <= 0) return "0分鐘";
             const hours = Math.floor(totalMinutes / 60);
@@ -298,16 +298,15 @@
             return `${hours}小時 ${minutes}分鐘`;
         }
 
-        // 核心解譯、距離與乘坐時間即時聯動計算
         function updateRouteCalculations() {
             const fromCode = fromHubInput.value.trim().toUpperCase();
             const toCode = toHubInput.value.trim().toUpperCase();
             
             let dbToUse = [];
-            let speed = 800; // 預設飛機時速 800 km/h
+            let speed = 800; 
             if (currentType === 'Flight') { dbToUse = airportDatabase; speed = 800; }
-            else if (currentType === 'HSR') { dbToUse = hsrDatabase; speed = 300; } // 中國高鐵時速 300 km/h
-            else if (currentType === 'JR') { dbToUse = jrDatabase; speed = 260; }   // 日本 JR 新幹線時速 260 km/h
+            else if (currentType === 'HSR') { dbToUse = hsrDatabase; speed = 300; } 
+            else if (currentType === 'JR') { dbToUse = jrDatabase; speed = 260; }   
 
             const fromObj = dbToUse.find(item => item.code === fromCode);
             const toObj = dbToUse.find(item => item.code === toCode);
@@ -328,7 +327,6 @@
 
             if (fromObj && toObj) {
                 const dist = calculateHaversineDistance(fromObj.lat, fromObj.lon, toObj.lat, toObj.lon);
-                // 計算所需時間 (分鐘)，最少給予 15 分鐘避免極短途顯示 0 分鐘
                 const durationMins = Math.max(15, Math.round((dist / speed) * 60));
                 
                 document.getElementById('distance').value = dist;
@@ -344,23 +342,53 @@
         fromHubInput.addEventListener('input', updateRouteCalculations);
         toHubInput.addEventListener('input', updateRouteCalculations);
 
+        // 🌟 初始化 3D 地球（設定全員變幼 + 預設靜止）
         function initGlobe() {
             if (globe) return;
             globe = Globe()(document.getElementById('globeViz'))
                 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
                 .arcsData([])
+                // 1. 保留高級感三色流線 (微亮色系)
                 .arcColor((d) => {
-                    if (d.type === 'Flight') return '#6366f1'; 
-                    if (d.type === 'HSR') return '#ef4444';    
-                    return '#10b981';                           
+                    if (d.type === 'Flight') return '#818cf8'; // 飛機：極光靛藍
+                    if (d.type === 'HSR') return '#f87171';    // 高鐵：珊瑚晶紅
+                    return '#34d399';                           // JR：薄荷嫩綠
                 })
-                .arcAltitude((d) => d.type === 'Flight' ? 0.25 : 0.08) 
-                .arcStroke(1.6)
-                .arcDashLength(0.4)
-                .arcDashGap(0.2)
-                .arcDashAnimateTime(2000);
+                .arcAltitude((d) => d.type === 'Flight' ? 0.22 : 0.07) 
+                // 2. 所有人一起變幼 (全部同步 0.8 像素)
+                .arcStroke(0.8)
+                // 3. 預設全部靜止 (設為 null)
+                .arcDashLength(null)
+                .arcDashGap(null)
+                .arcDashAnimateTime(null);
             
             setTimeout(() => globe.pointOfView({ lat: 30, lng: 120, alt: 2.2 }, 1000), 500);
+
+            // 4. 🧠 偵測滑鼠「滾動/放大縮小」或者「拖動地球」時觸發動線
+            let interactionTimer = null;
+            const container = document.getElementById('globeViz');
+
+            function triggerPulseAnimation() {
+                if (!globe || globalJourneysBackup.length === 0) return;
+                
+                // 滾動時：賦予虛線游走參數，條線會即時「郁一次」
+                globe.arcDashLength(0.4)
+                     .arcDashGap(0.15)
+                     .arcDashAnimateTime(1200);
+
+                // 1.5 秒後流光跑完，自動回復靜止狀態，確保畫面乾淨
+                clearTimeout(interactionTimer);
+                interactionTimer = setTimeout(() => {
+                    globe.arcDashLength(null)
+                         .arcDashGap(null)
+                         .arcDashAnimateTime(null);
+                }, 1500);
+            }
+
+            // 監聽滾動事件 (Scroll)
+            container.addEventListener('wheel', triggerPulseAnimation, { passive: true });
+            // 監聽按住拖拽地球事件 (Pointer Down)
+            container.addEventListener('pointerdown', triggerPulseAnimation, { passive: true });
         }
 
         window.setUiType = function(type) {
@@ -444,7 +472,6 @@
 
         logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // 提交到雲端數據庫
         journeyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return;
@@ -459,7 +486,7 @@
                     type: currentType, 
                     date: document.getElementById('date').value,
                     distance: distVal,
-                    durationMinutes: durationVal, // 保存分鐘數到雲端
+                    durationMinutes: durationVal, 
                     code: document.getElementById('code').value.toUpperCase(),
                     fromName: document.getElementById('fromName').value,
                     fromLat: Number(document.getElementById('fromLat').value),
@@ -474,13 +501,12 @@
             } catch (error) { alert("儲存失敗: " + error.message); }
         });
 
-        // 動態監聽與更新儀表板
         function loadJourneys(uid) {
             const q = query(collection(db, "journeys"), where("uid", "==", uid));
             onSnapshot(q, (snapshot) => {
                 const journeys = [];
                 let totalDistance = 0;
-                let totalMinutes = 0; // 累加總分鐘
+                let totalMinutes = 0; 
                 const tableBody = document.getElementById('journeyTableBody');
                 tableBody.innerHTML = '';
 
@@ -490,7 +516,6 @@
                     journeys.push(data);
                     
                     totalDistance += data.distance;
-                    // 相容舊數據：如果雲端沒存 durationMinutes，就現場當飛機速度即時補算
                     const mins = data.durationMinutes || Math.max(15, Math.round((data.distance / 800) * 60));
                     totalMinutes += mins;
 
@@ -513,7 +538,6 @@
                     tableBody.appendChild(tr);
                 });
 
-                // 更新頂部三個大數據指標
                 document.getElementById('totalCount').innerText = `總行程: ${journeys.length} 條`;
                 document.getElementById('totalDist').innerText = `總距離: ${totalDistance.toLocaleString()} km`;
                 document.getElementById('totalTime').innerText = `總時間: ${formatMinutesToHours(totalMinutes)}`;
@@ -523,6 +547,8 @@
                     endLat: j.toLat, endLng: j.toLon,
                     type: j.type
                 }));
+                
+                globalJourneysBackup = arcs; // 備份同步至全局變量
                 if (globe) globe.arcsData(arcs);
             });
         }
