@@ -159,27 +159,40 @@
     </div>
 
     let allJourneys = [];
+    let globe = null;
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-const routeLibrary = {
-    "CX504": [[22.3080, 113.9185], [25.0, 125.0], [32.0, 130.0], [35.5494, 139.7798]],
-    "JL735": [[22.3080, 113.9185], [30.0, 130.0], [35.6895, 139.6917]]
-};
-const firebaseConfig = {
-    apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
-    authDomain: "kanou-travel-tracker.firebaseapp.com",
-    projectId: "kanou-travel-tracker",
-    storageBucket: "kanou-travel-tracker.firebasestorage.app",
-    messagingSenderId: "638827344678",
-    appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
-    measurementId: "G-TXB2SVBC12"
-};
-        
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+    // 1. 導入所有必要的 Firebase 模組
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // 2. 在這裡統一定義所有全域變數 (Module 作用域)
+    let allJourneys = []; 
+    let globe = null;
+
+    const routeLibrary = {
+        "CX504": [[22.3080, 113.9185], [25.0, 125.0], [32.0, 130.0], [35.5494, 139.7798]],
+        "JL735": [[22.3080, 113.9185], [30.0, 130.0], [35.6895, 139.6917]]
+    };
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
+        authDomain: "kanou-travel-tracker.firebaseapp.com",
+        projectId: "kanou-travel-tracker",
+        storageBucket: "kanou-travel-tracker.firebasestorage.app",
+        messagingSenderId: "638827344678",
+        appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
+        measurementId: "G-TXB2SVBC12"
+    };
+
+    // 3. 初始化 Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 現在你的所有函數 (如 loadJourneys, initGlobe) 都可以直接讀取到上面的 allJourneys 了
+    window.allJourneys = allJourneys; // 如果你需要從標籤外存取，可以用 window 物件
+</script>
         
 // 4. 其他變數
 let currentAuthMode = 'login'; 
@@ -505,16 +518,18 @@ function initGlobe() {
             } catch (error) { alert("儲存失敗: " + error.message); }
         });
 
-        function loadJourneys(uid) {
+function loadJourneys(uid) {
     const q = query(collection(db, "journeys"), where("uid", "==", uid));
     onSnapshot(q, (snapshot) => {
-        // 1. 同步數據到全域變數
+        // 更新全域變數，這樣 initGlobe 才能讀取到最新的資料
         allJourneys = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        let totalDistance = 0;
-        let totalMinutes = 0; 
-        const tableBody = document.getElementById('journeyTableBody');
-        tableBody.innerHTML = '';
+        // ... 原本處理表格的邏輯 ...
+
+        // 關鍵點：在這裡呼叫 initGlobe，強制重新繪製地球
+        initGlobe(); 
+    });
+}
 
         // 2. 處理表格與計算
         allJourneys.forEach((data) => {
