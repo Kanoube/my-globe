@@ -164,19 +164,17 @@
         import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 const routeLibrary = {
     "CX504": [
-        [22.3080, 113.9185], // 香港 (HKG)
-        [25.0000, 125.0000], // 台灣空域
-        [32.0000, 130.0000], // 日本九州空域
-        [35.5494, 139.7798]  // 東京 (HND)
+        [22.3080, 113.9185],
+        [25.0000, 125.0000],
+        [32.0000, 130.0000],
+        [35.5494, 139.7798]
     ],
     "JL735": [
         [22.3080, 113.9185],
         [30.0000, 130.0000],
         [35.6895, 139.6917]
     ]
-}; // <--- 呢度一定要有呢個符號，代表 routeLibrary 結束咗
-
-// Firebase 配置
+};
 const firebaseConfig = {
     apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
     authDomain: "kanou-travel-tracker.firebaseapp.com",
@@ -186,7 +184,6 @@ const firebaseConfig = {
     appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
     measurementId: "G-TXB2SVBC12"
 };
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
