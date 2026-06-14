@@ -173,17 +173,19 @@ const routeLibrary = {
         [22.3080, 113.9185],
         [30.0000, 130.0000],
         [35.6895, 139.6917]
-        ]
-        // Firebase 配置
-        const firebaseConfig = {
-            apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
-            authDomain: "kanou-travel-tracker.firebaseapp.com",
-            projectId: "kanou-travel-tracker",
-            storageBucket: "kanou-travel-tracker.firebasestorage.app",
-            messagingSenderId: "638827344678",
-            appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
-            measurementId: "G-TXB2SVBC12"
-        };
+    ]
+}; // <--- 呢度一定要有呢個符號，代表 routeLibrary 結束咗
+
+// Firebase 配置
+const firebaseConfig = {
+    apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
+    authDomain: "kanou-travel-tracker.firebaseapp.com",
+    projectId: "kanou-travel-tracker",
+    storageBucket: "kanou-travel-tracker.firebasestorage.app",
+    messagingSenderId: "638827344678",
+    appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
+    measurementId: "G-TXB2SVBC12"
+};
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
