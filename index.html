@@ -350,15 +350,15 @@
                 .arcsData([])
                 // 🎨 顏色修訂：飛機（橙色）、高鐵（藍色）、JR（綠色）
                 .arcColor((d) => {
-                    if (d.type === 'Flight') return '#f97316'; // ✈️ 飛機：亮橙色
-                    if (d.type === 'HSR') return '#2563eb';    // 🚄 高鐵：科技寶藍色
-                    return '#34d399';                           // 🚅 JR：薄荷嫩綠色
+                    if (d.type === 'Flight') return '#ff8800'; // ✈️ 飛機：螢光橙
+                    if (d.type === 'HSR') return '##00d4ff';    // 🚄 高鐵：螢光藍
+                    return '#339ff14';                           // 🚅 JR：螢光綠
                 })
                 .arcAltitude((d) => d.type === 'Flight' ? 0.22 : 0.07) 
-                .arcStroke(0.8) // 所有人同步變幼
+                .arcStroke(0.35) // 所有人同步變幼
                 .arcDashLength(null)
                 .arcDashGap(null)
-                .arcDashAnimateTime(null);
+                .arcDashAnimateTime(5000);
             
             setTimeout(() => globe.pointOfView({ lat: 30, lng: 120, alt: 2.2 }, 1000), 500);
 
