@@ -176,7 +176,7 @@ const firebaseConfig = {
     appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
     measurementId: "G-TXB2SVBC12"
 };
-let allJourneys = []; 
+        
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -344,28 +344,31 @@ let hsrDatabase = [
         fromHubInput.addEventListener('input', updateRouteCalculations);
         toHubInput.addEventListener('input', updateRouteCalculations);
 
-// 🌟 初始化 3D 地球
+// 🌟 初始化與更新 3D 地球
 function initGlobe() {
-    if (globe) return;
-    globe = Globe()(document.getElementById('globeViz'))
-        .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-        // 沒有航線庫的用直線
+    // 1. 如果 globe 還沒建立，才進行初始化
+    if (!globe) {
+        globe = Globe()(document.getElementById('globeViz'))
+            .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg');
+    }
+
+    // 2. 使用 .arcsData() 和 .pathsData() 更新資料 (這不會重新創建地球，只會更新內容)
+    globe
         .arcsData(allJourneys.filter(d => !routeLibrary[d.code])) 
-        // 繪製路徑
         .pathsData(allJourneys.filter(d => routeLibrary[d.code]).map(d => ({
             coords: routeLibrary[d.code], 
             color: d.type === 'Flight' ? '#ff8800' : '#00d4ff'
         })))
         .pathColor('color')
         .pathStroke(0.5)
-        // 修正後的顏色邏輯
         .arcColor((d) => {
-            if (d.type === 'Flight') return '#ff8800'; // 螢光橙
-            if (d.type === 'HSR') return '#00d4ff';    // 螢光藍
-            return '#39ff14';                           // 螢光綠
+            if (d.type === 'Flight') return '#ff8800';
+            if (d.type === 'HSR') return '#00d4ff';
+            return '#39ff14';
         })
         .arcStroke(0.3)
         .arcDashAnimateTime(5000);
+}
             
             setTimeout(() => globe.pointOfView({ lat: 30, lng: 120, alt: 2.2 }, 1000), 500);
 
