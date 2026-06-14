@@ -92,7 +92,8 @@
                             
                             <div class="relative">
                                 <label id="fromHubLabel" class="block text-[11px] font-medium text-slate-500 mb-0.5">出發機場 (IATA)</label>
-                                <input type="text" id="fromHubInput" list="hubOptions" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500" placeholder="e.g. HKG">
+                                <select id="fromHubInput" class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500">
+    </select>
                             </div>
 
                             <div class="relative">
@@ -207,6 +208,10 @@
             { code: "ZH", name: "珠海站 (Zhuhai)", lat: 22.2195, lon: 113.5482 },
             { code: "SOU", name: "汕頭站 (Shantou)", lat: 23.3619, lon: 116.7441 },
             { code: "XAM", name: "廈門北站 (Xiamenbei)", lat: 24.6369, lon: 118.0641 }
+            {code: "QIN", name: "青島站  (Qingdao)", lat: 36.065375, lon: 120.307694 }
+            {code: "QINB", name: "青島北站  (Qingdaobeibei)", lat: 36.169314, lon: 120.369344 }
+            {code: "QINB", name: "青島北站  (Qingdaobeibei)", lat: 36.169314, lon: 120.369344 }
+            {code: "YAN", name: "煙臺站  (Yantai)", lat: 37.547628, lon: 121.377689 }
         ];
 
         let jrDatabase = [
@@ -411,15 +416,13 @@
                 fromHubInput.placeholder = "e.g. HKG";
                 toHubInput.placeholder = "e.g. HND";
                 fromHubInput.value = 'HKG'; 
-            } else if (type === 'HSR') {
-                btnHSR.className = "py-2 px-1 rounded-lg font-medium border text-center text-xs bg-red-50 border-red-600 text-red-600";
-                codeLabel.innerText = "高鐵車次";
-                hubConfigTitle.innerText = "🚄 中國高鐵設定 (可選內地任何大站)";
-                fromHubLabel.innerText = "出發高鐵站 (支援簡寫/中文)";
-                toHubLabel.innerText = "到達高鐵站 (支援簡寫/中文)";
-                fromHubInput.placeholder = "e.g. XHK / GZNS / 北京南";
-                toHubInput.placeholder = "e.g. GZNS / SZN / 廣州南";
-                fromHubInput.value = 'XHK'; 
+           } else if (type === 'HSR') {
+                const fromSelect = document.getElementById('fromHubInput');
+   fromSelect.innerHTML = hsrStations.map(s => 
+        `<option value="${s.code}">${s.name}</option>`
+    ).join('');
+   fromSelect.value = 'XHK';
+}
             } else if (type === 'JR') {
                 btnJR.className = "py-2 px-1 rounded-lg font-medium border text-center text-xs bg-emerald-50 border-emerald-600 text-emerald-600";
                 codeLabel.innerText = "新幹線車次";
