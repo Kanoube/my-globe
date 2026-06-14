@@ -182,7 +182,7 @@
         let currentType = 'Flight'; 
         let currentUser = null;
         let globe = null;
-        let globalJourneysBackup = []; // 緩存數據用以觸發滾動動畫
+        let globalJourneysBackup = []; 
         
         let airportDatabase = [];
         
@@ -247,7 +247,7 @@
         const toHubInput = document.getElementById('toHubInput');
         const hubOptions = document.getElementById('hubOptions');
         const fromDisplayRealName = document.getElementById('fromDisplayRealName');
-        const toDisplayRealName = document.getElementById('toDisplayRealName');
+        const textToDisplayRealName = document.getElementById('toDisplayRealName');
         const autoDistanceDisplay = document.getElementById('autoDistanceDisplay');
         const hubConfigTitle = document.getElementById('hubConfigTitle');
         const fromHubLabel = document.getElementById('fromHubLabel');
@@ -342,41 +342,37 @@
         fromHubInput.addEventListener('input', updateRouteCalculations);
         toHubInput.addEventListener('input', updateRouteCalculations);
 
-        // 🌟 初始化 3D 地球（設定全員變幼 + 預設靜止）
+        // 🌟 初始化 3D 地球（全新配色組合）
         function initGlobe() {
             if (globe) return;
             globe = Globe()(document.getElementById('globeViz'))
                 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
                 .arcsData([])
-                // 1. 保留高級感三色流線 (微亮色系)
+                // 🎨 顏色修訂：飛機（橙色）、高鐵（藍色）、JR（綠色）
                 .arcColor((d) => {
-                    if (d.type === 'Flight') return '#818cf8'; // 飛機：極光靛藍
-                    if (d.type === 'HSR') return '#f87171';    // 高鐵：珊瑚晶紅
-                    return '#34d399';                           // JR：薄荷嫩綠
+                    if (d.type === 'Flight') return '#f97316'; // ✈️ 飛機：亮橙色
+                    if (d.type === 'HSR') return '#2563eb';    // 🚄 高鐵：科技寶藍色
+                    return '#34d399';                           // 🚅 JR：薄荷嫩綠色
                 })
                 .arcAltitude((d) => d.type === 'Flight' ? 0.22 : 0.07) 
-                // 2. 所有人一起變幼 (全部同步 0.8 像素)
-                .arcStroke(0.8)
-                // 3. 預設全部靜止 (設為 null)
+                .arcStroke(0.8) // 所有人同步變幼
                 .arcDashLength(null)
                 .arcDashGap(null)
                 .arcDashAnimateTime(null);
             
             setTimeout(() => globe.pointOfView({ lat: 30, lng: 120, alt: 2.2 }, 1000), 500);
 
-            // 4. 🧠 偵測滑鼠「滾動/放大縮小」或者「拖動地球」時觸發動線
+            // 🧠 滾動/拖拽地球時才動態閃爍一次
             let interactionTimer = null;
             const container = document.getElementById('globeViz');
 
             function triggerPulseAnimation() {
                 if (!globe || globalJourneysBackup.length === 0) return;
                 
-                // 滾動時：賦予虛線游走參數，條線會即時「郁一次」
                 globe.arcDashLength(0.4)
                      .arcDashGap(0.15)
                      .arcDashAnimateTime(1200);
 
-                // 1.5 秒後流光跑完，自動回復靜止狀態，確保畫面乾淨
                 clearTimeout(interactionTimer);
                 interactionTimer = setTimeout(() => {
                     globe.arcDashLength(null)
@@ -385,9 +381,7 @@
                 }, 1500);
             }
 
-            // 監聽滾動事件 (Scroll)
             container.addEventListener('wheel', triggerPulseAnimation, { passive: true });
-            // 監聽按住拖拽地球事件 (Pointer Down)
             container.addEventListener('pointerdown', triggerPulseAnimation, { passive: true });
         }
 
@@ -548,7 +542,7 @@
                     type: j.type
                 }));
                 
-                globalJourneysBackup = arcs; // 備份同步至全局變量
+                globalJourneysBackup = arcs; 
                 if (globe) globe.arcsData(arcs);
             });
         }
