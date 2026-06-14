@@ -162,7 +162,18 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
+const routeLibrary = {
+    "CX504": [
+        [22.3080, 113.9185], // 香港 (HKG)
+        [25.0000, 125.0000], // 台灣空域
+        [32.0000, 130.0000], // 日本九州空域
+        [35.5494, 139.7798]  // 東京 (HND)
+    ],
+    "JL735": [
+        [22.3080, 113.9185],
+        [30.0000, 130.0000],
+        [35.6895, 139.6917]
+        
         // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
@@ -346,19 +357,17 @@
         function initGlobe() {
             if (globe) return;
             globe = Globe()(document.getElementById('globeViz'))
-                .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-                .arcsData([])
-                // 🎨 顏色修訂：飛機（橙色）、高鐵（藍色）、JR（綠色）
-                .arcColor((d) => {
-                    if (d.type === 'Flight') return '#ff8800'; // ✈️ 飛機：螢光橙
-                    if (d.type === 'HSR') return '##00d4ff';    // 🚄 高鐵：螢光藍
-                    return '#339ff14';                           // 🚅 JR：螢光綠
-                })
-                .arcAltitude((d) => d.type === 'Flight' ? 0.22 : 0.07) 
-                .arcStroke(0.35) // 所有人同步變幼
-                .arcDashLength(null)
-                .arcDashGap(null)
-                .arcDashAnimateTime(5000);
+    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+    .arcsData(allJourneys.filter(d => !routeLibrary[d.code])) // 沒有航線庫的用直線
+    .pathsData(allJourneys.filter(d => routeLibrary[d.code]).map(d => ({
+        coords: routeLibrary[d.code], // 讀取你啱啱建立嘅航線庫
+        color: d.type === 'Flight' ? '#ff8800' : '#00d4ff' // 根據類型設定顏色
+    })))
+    .pathColor('color')
+    .pathStroke(0.5) // 路徑線粗幼
+    .arcColor((d) => { /* 你原本嘅顏色邏輯 */ })
+    .arcStroke(0.35)
+    .arcDashAnimateTime(5000)
             
             setTimeout(() => globe.pointOfView({ lat: 30, lng: 120, alt: 2.2 }, 1000), 500);
 
