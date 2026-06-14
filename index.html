@@ -86,25 +86,33 @@
                         </div>
 
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
-                            <span class="font-bold text-slate-700 text-xs flex items-center gap-1">🌐 航線地點設定</span>
+                            <span id="hubConfigTitle" class="font-bold text-slate-700 text-xs flex items-center gap-1">🌐 航線快捷設定 (輸入 IATA 簡寫)</span>
                             
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-500 mb-0.5">出發起點</label>
-                                <select id="fromAirportSelect" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500">
-                                    <option value="">正在載入全球機場數據...</option>
-                                </select>
+                            <div class="relative">
+                                <label id="fromHubLabel" class="block text-[11px] font-medium text-slate-500 mb-0.5">出發起點 (IATA 簡寫)</label>
+                                <input type="text" id="fromHubInput" list="hubOptions" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500" placeholder="e.g. HKG">
                             </div>
 
-                            <div>
-                                <label class="block text-[11px] font-medium text-slate-500 mb-0.5">目的地</label>
-                                <select id="toAirportSelect" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500">
-                                    <option value="">正在載入全球機場數據...</option>
-                                </select>
+                            <div class="relative">
+                                <label id="toHubLabel" class="block text-[11px] font-medium text-slate-500 mb-0.5">目的地 (IATA 簡寫)</label>
+                                <input type="text" id="toHubInput" list="hubOptions" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500" placeholder="e.g. HND">
                             </div>
 
-                            <div class="pt-2 border-t border-dashed border-slate-200 flex justify-between text-xs text-slate-500">
-                                <span>自動計算預估距離:</span>
-                                <span id="autoDistanceDisplay" class="font-bold text-indigo-600">0 km</span>
+                            <datalist id="hubOptions"></datalist>
+
+                            <div class="pt-2 border-t border-dashed border-slate-200 flex flex-col gap-1 text-xs text-slate-500">
+                                <div class="flex justify-between">
+                                    <span>起點解譯:</span>
+                                    <span id="fromDisplayRealName" class="font-medium text-slate-700">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>終點解譯:</span>
+                                    <span id="toDisplayRealName" class="font-medium text-slate-700">-</span>
+                                </div>
+                                <div class="flex justify-between pt-1 font-bold text-slate-700">
+                                    <span>預估距離:</span>
+                                    <span id="autoDistanceDisplay" class="text-indigo-600">0 km</span>
+                                </div>
                             </div>
                         </div>
 
@@ -132,8 +140,8 @@
                                 <tr class="bg-slate-50 text-slate-500 border-b border-slate-100 text-xs font-semibold uppercase">
                                     <th class="px-6 py-3">類型</th>
                                     <th class="px-6 py-3">日期</th>
-                                    <th class="px-6 py-3">編號/名稱</th>
-                                    <th class="px-6 py-3">航線 (由 ➡️ 至)</th>
+                                    <th class="px-6 py-3">編號/車次</th>
+                                    <th class="px-6 py-3">區間 (由 ➡️ 至)</th>
                                     <th class="px-6 py-3">距離</th>
                                     <th class="px-6 py-3 text-center">操作</th>
                                 </tr>
@@ -152,7 +160,7 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 你的 Firebase 金鑰 配置
+        // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
             authDomain: "kanou-travel-tracker.firebaseapp.com",
@@ -163,19 +171,38 @@
             measurementId: "G-TXB2SVBC12"
         };
 
-        // 初始化 Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // 狀態變數
         let currentAuthMode = 'login'; 
         let currentType = 'Flight';
         let currentUser = null;
         let globe = null;
-        let airportDatabase = []; // 用於存放全球主要機場數據
+        
+        // 核心資料庫
+        let airportDatabase = [];
+        let railwayDatabase = [
+            // 香港及中國高鐵核心大站
+            { code: "XHK", name: "香港西九龍站 (Hong Kong West Kowloon)", lat: 22.3032, lon: 114.1652, type: "Rail" },
+            { code: "GZNS", name: "廣州南站 (Guangzhounan)", lat: 22.9877, lon: 113.2684, type: "Rail" },
+            { code: "SZN", name: "深圳北站 (Shenzhenbei)", lat: 22.6102, lon: 114.0294, type: "Rail" },
+            { code: "FSH", name: "福田站 (Futian)", lat: 22.5422, lon: 114.0545, type: "Rail" },
+            { code: "BJP", name: "北京南站 (Beijingnan)", lat: 39.8637, lon: 116.3789, type: "Rail" },
+            { code: "SHHQ", name: "上海虹橋站 (Shanghai Hongqiao)", lat: 31.1944, lon: 121.3201, type: "Rail" },
+            { code: "HZN", name: "杭州東站 (Hangzhoudong)", lat: 30.2917, lon: 120.2136, type: "Rail" },
+            // 日本 JR 核心新幹線大站
+            { code: "TYO", name: "東京站 (Tokyo JR)", lat: 35.6812, lon: 139.7671, type: "Rail" },
+            { code: "SNA", name: "新大阪站 (Shin-Osaka JR)", lat: 34.7335, lon: 135.5003, type: "Rail" },
+            { code: "KYT", name: "京都站 (Kyoto JR)", lat: 34.9858, lon: 135.7588, type: "Rail" },
+            { code: "NGO", name: "名古屋站 (Nagoya JR)", lat: 35.1709, lon: 136.8815, type: "Rail" },
+            { code: "HAK", name: "博多站 (Hakata JR)", lat: 33.5898, lon: 130.4208, type: "Rail" },
+            { code: "SPK", name: "札幌站 (Sapporo JR)", lat: 43.0686, lon: 141.3508, type: "Rail" },
+            { code: "SEN", name: "仙台站 (Sendai JR)", lat: 38.2601, lon: 140.8824, type: "Rail" },
+            { code: "NAG", name: "長野站 (Nagano JR)", lat: 36.6431, lon: 138.1886, type: "Rail" },
+            { code: "KAN", name: "金澤站 (Kanazawa JR)", lat: 36.5781, lon: 136.6481, type: "Rail" }
+        ];
 
-        // 畫面元素綁定
         const authSection = document.getElementById('authSection');
         const appSection = document.getElementById('appSection');
         const authForm = document.getElementById('authForm');
@@ -188,83 +215,97 @@
         const userDisplay = document.getElementById('userDisplay');
         const logoutBtn = document.getElementById('logoutBtn');
         const journeyForm = document.getElementById('journeyForm');
-        const fromAirportSelect = document.getElementById('fromAirportSelect');
-        const toAirportSelect = document.getElementById('toAirportSelect');
+        
+        // 智能組件綁定
+        const fromHubInput = document.getElementById('fromHubInput');
+        const toHubInput = document.getElementById('toHubInput');
+        const hubOptions = document.getElementById('hubOptions');
+        const fromDisplayRealName = document.getElementById('fromDisplayRealName');
+        const toDisplayRealName = document.getElementById('toDisplayRealName');
         const autoDistanceDisplay = document.getElementById('autoDistanceDisplay');
+        const hubConfigTitle = document.getElementById('hubConfigTitle');
+        const fromHubLabel = document.getElementById('fromHubLabel');
+        const toHubLabel = document.getElementById('toHubLabel');
 
-        // 載入全球機場數據
+        // 加載全球機場數據
         async function fetchAirports() {
             try {
-                // 讀取包含全球主要城市及機場代碼的開源潔淨數據
                 const res = await fetch('https://raw.githubusercontent.com/mwgg/Airports/master/airports.json');
                 const data = await res.json();
                 
-                // 過濾並整理成易用的陣列，只留有包含 IATA 代碼的常規機場
                 airportDatabase = Object.values(data)
                     .filter(a => a.iata && a.iata.length === 3 && a.name)
                     .map(a => ({
-                        iata: a.iata,
-                        name: `${a.iata} - ${a.city || ''} ${a.name}`,
-                        city: a.city || a.name,
+                        code: a.iata.toUpperCase(),
+                        name: `${a.city || ''} ${a.name} (${a.country || ''})`,
                         lat: Number(a.lat),
-                        lon: Number(a.lon)
-                    }))
-                    .sort((a, b) => a.iata.localeCompare(b.iata));
+                        lon: Number(a.lon),
+                        type: "Flight"
+                    }));
 
-                // 渲染至 Dropdown 選單中
-                renderAirportOptions();
+                // 預先渲染初次下拉選單
+                renderHubOptions();
             } catch (err) {
                 console.error("無法加載機場數據:", err);
-                fromAirportSelect.innerHTML = `<option value="">加載失敗，請重試</option>`;
-                toAirportSelect.innerHTML = `<option value="">加載失敗，請重試</option>`;
             }
         }
 
-        function renderAirportOptions() {
-            let optionsHtml = `<option value="">-- 請選擇地區/機場 --</option>`;
-            airportDatabase.forEach(ap => {
-                optionsHtml += `<option value="${ap.iata}">${ap.name}</option>`;
+        // 根據目前類型（Flight/Rail）重新渲染 Datalist 聯想詞庫
+        function renderHubOptions() {
+            let optionsHtml = '';
+            const dbToUse = (currentType === 'Flight') ? airportDatabase : railwayDatabase;
+            
+            dbToUse.forEach(item => {
+                optionsHtml += `<option value="${item.code}">${item.name}</option>`;
             });
-            fromAirportSelect.innerHTML = optionsHtml;
-            toAirportSelect.innerHTML = optionsHtml;
-
-            // 預設將出發地指去香港(HKG)，方便日常使用
-            if (airportDatabase.some(a => a.iata === 'HKG')) {
-                fromAirportSelect.value = 'HKG';
-                updateRouteCalculations();
-            }
+            hubOptions.innerHTML = optionsHtml;
         }
 
-        // 大圓距離計算公式 (Haversine Formula) - 精確算出地球兩點距離
+        // 大圓距離公式
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // 地球平均半徑 (公里)
+            const R = 6371; 
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = 
                 Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return Math.round(R * c); // 傳回整數公里數
+            return Math.round(R * c); 
         }
 
-        // 監聽選單變更，自動更新距離與隱藏欄位
+        // 實時解譯與計算距離
         function updateRouteCalculations() {
-            const fromAp = airportDatabase.find(a => a.iata === fromAirportSelect.value);
-            const toAp = airportDatabase.find(a => a.iata === toAirportSelect.value);
+            const fromCode = fromHubInput.value.trim().toUpperCase();
+            const toCode = toHubInput.value.trim().toUpperCase();
+            const dbToUse = (currentType === 'Flight') ? airportDatabase : railwayDatabase;
 
-            if (fromAp && toAp) {
-                const dist = calculateHaversineDistance(fromAp.lat, fromAp.lon, toAp.lat, toAp.lon);
-                
-                // 寫入後台隱藏 input
+            const fromObj = dbToUse.find(item => item.code === fromCode);
+            const toObj = dbToUse.find(item => item.code === toCode);
+
+            // 起點解譯
+            if (fromObj) {
+                fromDisplayRealName.innerText = fromObj.name.split(' (')[0];
+                document.getElementById('fromName').value = fromObj.name.split(' (')[0];
+                document.getElementById('fromLat').value = fromObj.lat;
+                document.getElementById('fromLon').value = fromObj.lon;
+            } else {
+                fromDisplayRealName.innerText = fromCode ? "未識別的代碼/站名" : "-";
+            }
+
+            // 終點解譯
+            if (toObj) {
+                toDisplayRealName.innerText = toObj.name.split(' (')[0];
+                document.getElementById('toName').value = toObj.name.split(' (')[0];
+                document.getElementById('toLat').value = toObj.lat;
+                document.getElementById('toLon').value = toObj.lon;
+            } else {
+                toDisplayRealName.innerText = toCode ? "未識別的代碼/站名" : "-";
+            }
+
+            // 計算距離
+            if (fromObj && toObj) {
+                const dist = calculateHaversineDistance(fromObj.lat, fromObj.lon, toObj.lat, toObj.lon);
                 document.getElementById('distance').value = dist;
-                document.getElementById('fromName').value = `${fromAp.city} (${fromAp.iata})`;
-                document.getElementById('fromLat').value = fromAp.lat;
-                document.getElementById('fromLon').value = fromAp.lon;
-                document.getElementById('toName').value = `${toAp.city} (${toAp.iata})`;
-                document.getElementById('toLat').value = toAp.lat;
-                document.getElementById('toLon').value = toAp.lon;
-
-                // 畫面更新顯示
                 autoDistanceDisplay.innerText = `${dist.toLocaleString()} km`;
             } else {
                 document.getElementById('distance').value = "0";
@@ -272,8 +313,8 @@
             }
         }
 
-        fromAirportSelect.addEventListener('change', updateRouteCalculations);
-        toAirportSelect.addEventListener('change', updateRouteCalculations);
+        fromHubInput.addEventListener('input', updateRouteCalculations);
+        toHubInput.addEventListener('input', updateRouteCalculations);
 
         // 初始化 3D 地球
         function initGlobe() {
@@ -281,7 +322,7 @@
             globe = Globe()(document.getElementById('globeViz'))
                 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
                 .arcsData([])
-                .arcColor(() => '#6366f1')
+                .arcColor((d) => d.type === 'Flight' ? '#6366f1' : '#10b981') // 飛機藍線，鐵路綠線
                 .arcAltitude(0.2)
                 .arcStroke(1.5)
                 .arcDashLength(0.4)
@@ -293,7 +334,47 @@
             }, 500);
         }
 
-        // 切換 登入 / 註冊 介面模式
+        // 交通切換模組
+        window.setType = function(type) {
+            currentType = type;
+            const btnFlight = document.getElementById('typeFlight');
+            const btnRail = document.getElementById('typeRail');
+            const codeLabel = document.getElementById('codeLabel');
+
+            // 清空舊輸入，避免跨界衝突
+            fromHubInput.value = '';
+            toHubInput.value = '';
+            updateRouteCalculations();
+            renderHubOptions();
+
+            if (type === 'Flight') {
+                btnFlight.className = "py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600";
+                btnRail.className = "py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
+                codeLabel.innerText = "航班編號";
+                hubConfigTitle.innerText = "✈️ 航線快捷設定 (輸入 IATA 簡寫)";
+                fromHubLabel.innerText = "出發機場 (IATA 簡寫)";
+                toHubLabel.innerText = "目的機場 (IATA 簡寫)";
+                fromHubInput.placeholder = "e.g. HKG";
+                toHubInput.placeholder = "e.g. HND";
+                fromHubInput.value = 'HKG'; // 預設香港出發
+                updateRouteCalculations();
+            } else {
+                btnRail.className = "py-2 rounded-lg font-medium border text-center text-sm bg-emerald-50 border-emerald-600 text-emerald-600";
+                btnFlight.className = "py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
+                codeLabel.innerText = "列車車次";
+                hubConfigTitle.innerText = "🚄 鐵路快捷設定 (輸入車站代碼或名稱)";
+                fromHubLabel.innerText = "出發車站 (代碼 / 中文名稱)";
+                toHubLabel.innerText = "到達車站 (代碼 / 中文名稱)";
+                fromHubInput.placeholder = "e.g. XHK 或 香港西九龍";
+                toHubInput.placeholder = "e.g. GZNS 或 廣州南";
+                fromHubInput.value = 'XHK'; // 預設高鐵香港西九龍出發
+                updateRouteCalculations();
+            }
+        }
+        document.getElementById('typeFlight').addEventListener('click', () => setType('Flight'));
+        document.getElementById('typeRail').addEventListener('click', () => setType('Rail'));
+
+        // 登入驗證
         switchAuthMode.addEventListener('click', () => {
             if (currentAuthMode === 'login') {
                 currentAuthMode = 'register';
@@ -310,26 +391,18 @@
             }
         });
 
-        // 處理 表單遞交 (登入/註冊)
         authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = authEmail.value;
-            const password = authPassword.value;
-
             try {
                 if (currentAuthMode === 'register') {
-                    await createUserWithEmailAndPassword(auth, email, password);
-                    alert('帳號註冊成功！已自動為您登入。');
+                    await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+                    alert('帳號註冊成功！');
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
                 }
-            } catch (error) {
-                console.error("驗證發生錯誤:", error);
-                alert('操作失敗: ' + error.message);
-            }
+            } catch (error) { alert('操作失敗: ' + error.message); }
         });
 
-        // 監聽用戶登入狀態
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -338,7 +411,7 @@
                 authSection.classList.add('hidden');
                 appSection.classList.remove('hidden');
                 initGlobe();
-                fetchAirports(); // 登入成功後下載機場名單
+                fetchAirports(); 
                 loadJourneys(user.uid);
             } else {
                 currentUser = null;
@@ -347,42 +420,16 @@
             }
         });
 
-        // 登出功能
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth).then(() => {
-                authForm.reset();
-                currentAuthMode = 'login';
-            });
-        });
+        logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // 交通工具切換
-        window.setType = function(type) {
-            currentType = type;
-            const btnFlight = document.getElementById('typeFlight');
-            const btnRail = document.getElementById('typeRail');
-            const codeLabel = document.getElementById('codeLabel');
-
-            if (type === 'Flight') {
-                btnFlight.className = "py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600";
-                btnRail.className = "py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
-                codeLabel.innerText = "航班編號";
-            } else {
-                btnRail.className = "py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600";
-                btnFlight.className = "py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
-                codeLabel.innerText = "列車車次";
-            }
-        }
-        document.getElementById('typeFlight').addEventListener('click', () => setType('Flight'));
-        document.getElementById('typeRail').addEventListener('click', () => setType('Rail'));
-
-        // 遞交新增行程資料至 Firestore
+        // 提交表單上傳雲端
         journeyForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!currentUser) return;
 
             const distVal = Number(document.getElementById('distance').value);
             if (distVal <= 0) {
-                alert("請先選擇有效的起點和目的地機場！");
+                alert("請輸入正確且有效的出發/目的地代碼或車站！");
                 return;
             }
 
@@ -401,22 +448,12 @@
                     toLon: Number(document.getElementById('toLon').value)
                 });
                 
-                // 重設表單（只留起點為香港）
                 journeyForm.reset();
-                setType('Flight');
-                if (fromAirportSelect.querySelector('option[value="HKG"]')) {
-                    fromAirportSelect.value = 'HKG';
-                }
-                updateRouteCalculations();
-                
-                alert('行程成功同步至雲端數據庫！');
-            } catch (error) {
-                console.error("儲存行程失敗:", error);
-                alert("儲存失敗: " + error.message);
-            }
+                setType(currentType); 
+                alert('行程已成功同步到雲端！');
+            } catch (error) { alert("儲存失敗: " + error.message); }
         });
 
-        // 即時從 Firestore 載入數據並更新地球和清單
         function loadJourneys(uid) {
             const q = query(collection(db, "journeys"), where("uid", "==", uid));
             onSnapshot(q, (snapshot) => {
@@ -431,7 +468,6 @@
                     journeys.push(data);
                     totalDistance += data.distance;
 
-                    // 渲染表格 HTML
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 transition-colors";
                     tr.innerHTML = `
@@ -447,29 +483,23 @@
                     tableBody.appendChild(tr);
                 });
 
-                // 更新數據看板
                 document.getElementById('totalCount').innerText = `總行程: ${journeys.length} 條`;
                 document.getElementById('totalDist').innerText = `總距離: ${totalDistance.toLocaleString()} km`;
 
-                // 將數據餵給 3D 地球畫弧線
                 const arcs = journeys.map(j => ({
                     startLat: j.fromLat,
                     startLng: j.fromLon,
                     endLat: j.toLat,
-                    endLng: j.toLon
+                    endLng: j.toLon,
+                    type: j.type
                 }));
                 if (globe) globe.arcsData(arcs);
             });
         }
 
-        // 刪除行程
         window.deleteJourney = async function(id) {
             if (confirm('確定要永久刪除此條行程備份嗎？')) {
-                try {
-                    await deleteDoc(doc(db, "journeys", id));
-                } catch (error) {
-                    alert('刪除失敗: ' + error.message);
-                }
+                try { await deleteDoc(doc(db, "journeys", id)); } catch (error) { alert(error.message); }
             }
         }
     </script>
