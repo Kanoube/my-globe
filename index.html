@@ -351,7 +351,7 @@
                 // 🎨 顏色修訂：飛機（橙色）、高鐵（藍色）、JR（綠色）
                 .arcColor((d) => {
                     if (d.type === 'Flight') return '#ff8800'; // ✈️ 飛機：極致螢光橙
-                    if (d.type === 'HSR') return '#00d4ff'';    // 🚄 高鐵：螢光電子藍
+                    if (d.type === 'HSR') return '#00d4ff';    // 🚄 高鐵：螢光電子藍
                     return '#39ff14';                           // 🚅 JR：螢光電流綠
                 })
                 .arcAltitude((d) => d.type === 'Flight' ? 0.22 : 0.07) 
