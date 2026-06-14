@@ -9,7 +9,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@300;400;500;700&display=swap');
         body { font-family: 'Noto Sans HK', sans-serif; }
-        #globeViz { width: 100%; height: 320px; background-color: #0b1329; border-radius: 1rem; overflow: hidden; }
+        #globeViz { width: 100%; height: 500px; background-color: #0b1329; border-radius: 1rem; overflow: hidden; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -73,39 +73,49 @@
                                 <button type="button" id="typeRail" class="py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50">🚄 鐵路</button>
                             </div>
                         </div>
+
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label for="date" class="block text-sm font-medium text-slate-600 mb-1">日期</label>
                                 <input type="date" id="date" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
                             </div>
                             <div>
-                                <label for="distance" class="block text-sm font-medium text-slate-600 mb-1">距離 (km)</label>
-                                <input type="number" id="distance" min="0" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm">
+                                <label id="codeLabel" class="block text-sm font-medium text-slate-600 mb-1">航班編號</label>
+                                <input type="text" id="code" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm uppercase" placeholder="e.g. CX504">
                             </div>
                         </div>
-                        <div>
-                            <label id="codeLabel" class="block text-sm font-medium text-slate-600 mb-1">航班編號</label>
-                            <input type="text" id="code" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm uppercase">
-                        </div>
-                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2 text-xs">
-                            <span class="font-bold text-slate-500 block">🌐 地球航線坐標設定</span>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div>
-                                    <input type="text" id="fromName" placeholder="出發城市 (e.g. 香港)" required class="w-full p-1 border rounded mb-1 text-xs">
-                                    <div class="flex gap-1">
-                                        <input type="number" step="any" id="fromLat" placeholder="緯度" required class="w-1/2 p-0.5 border rounded text-[11px]">
-                                        <input type="number" step="any" id="fromLon" placeholder="經度" required class="w-1/2 p-0.5 border rounded text-[11px]">
-                                    </div>
-                                </div>
-                                <div>
-                                    <input type="text" id="toName" placeholder="目的地 (e.g. 東京)" required class="w-full p-1 border rounded mb-1 text-xs">
-                                    <div class="flex gap-1">
-                                        <input type="number" step="any" id="toLat" placeholder="緯度" required class="w-1/2 p-0.5 border rounded text-[11px]">
-                                        <input type="number" step="any" id="toLon" placeholder="經度" required class="w-1/2 p-0.5 border rounded text-[11px]">
-                                    </div>
-                                </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3">
+                            <span class="font-bold text-slate-700 text-xs flex items-center gap-1">🌐 航線地點設定</span>
+                            
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500 mb-0.5">出發起點</label>
+                                <select id="fromAirportSelect" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500">
+                                    <option value="">正在載入全球機場數據...</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-500 mb-0.5">目的地</label>
+                                <select id="toAirportSelect" required class="w-full p-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-indigo-500">
+                                    <option value="">正在載入全球機場數據...</option>
+                                </select>
+                            </div>
+
+                            <div class="pt-2 border-t border-dashed border-slate-200 flex justify-between text-xs text-slate-500">
+                                <span>自動計算預估距離:</span>
+                                <span id="autoDistanceDisplay" class="font-bold text-indigo-600">0 km</span>
                             </div>
                         </div>
+
+                        <input type="hidden" id="distance" value="0">
+                        <input type="hidden" id="fromName">
+                        <input type="hidden" id="fromLat">
+                        <input type="hidden" id="fromLon">
+                        <input type="hidden" id="toName">
+                        <input type="hidden" id="toLat">
+                        <input type="hidden" id="toLon">
+
                         <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm">➕ 新增行程紀錄</button>
                     </form>
                 </div>
@@ -113,7 +123,7 @@
 
             <section class="lg:col-span-2">
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-100">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                         <h3 class="font-bold text-slate-900">📜 我的歷史行程清單</h3>
                     </div>
                     <div class="overflow-x-auto">
@@ -142,12 +152,12 @@
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 已自動填入你在 Kanoube-Travel-Tracker 專案的配置金鑰
+        // 你的 Firebase 金鑰 配置
         const firebaseConfig = {
             apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
             authDomain: "kanou-travel-tracker.firebaseapp.com",
             projectId: "kanou-travel-tracker",
-            storageBucket: "kanou-travel-tracker.appspot.com",
+            storageBucket: "kanou-travel-tracker.firebasestorage.app",
             messagingSenderId: "638827344678",
             appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
             measurementId: "G-TXB2SVBC12"
@@ -163,6 +173,7 @@
         let currentType = 'Flight';
         let currentUser = null;
         let globe = null;
+        let airportDatabase = []; // 用於存放全球主要機場數據
 
         // 畫面元素綁定
         const authSection = document.getElementById('authSection');
@@ -177,6 +188,92 @@
         const userDisplay = document.getElementById('userDisplay');
         const logoutBtn = document.getElementById('logoutBtn');
         const journeyForm = document.getElementById('journeyForm');
+        const fromAirportSelect = document.getElementById('fromAirportSelect');
+        const toAirportSelect = document.getElementById('toAirportSelect');
+        const autoDistanceDisplay = document.getElementById('autoDistanceDisplay');
+
+        // 載入全球機場數據
+        async function fetchAirports() {
+            try {
+                // 讀取包含全球主要城市及機場代碼的開源潔淨數據
+                const res = await fetch('https://raw.githubusercontent.com/mwgg/Airports/master/airports.json');
+                const data = await res.json();
+                
+                // 過濾並整理成易用的陣列，只留有包含 IATA 代碼的常規機場
+                airportDatabase = Object.values(data)
+                    .filter(a => a.iata && a.iata.length === 3 && a.name)
+                    .map(a => ({
+                        iata: a.iata,
+                        name: `${a.iata} - ${a.city || ''} ${a.name}`,
+                        city: a.city || a.name,
+                        lat: Number(a.lat),
+                        lon: Number(a.lon)
+                    }))
+                    .sort((a, b) => a.iata.localeCompare(b.iata));
+
+                // 渲染至 Dropdown 選單中
+                renderAirportOptions();
+            } catch (err) {
+                console.error("無法加載機場數據:", err);
+                fromAirportSelect.innerHTML = `<option value="">加載失敗，請重試</option>`;
+                toAirportSelect.innerHTML = `<option value="">加載失敗，請重試</option>`;
+            }
+        }
+
+        function renderAirportOptions() {
+            let optionsHtml = `<option value="">-- 請選擇地區/機場 --</option>`;
+            airportDatabase.forEach(ap => {
+                optionsHtml += `<option value="${ap.iata}">${ap.name}</option>`;
+            });
+            fromAirportSelect.innerHTML = optionsHtml;
+            toAirportSelect.innerHTML = optionsHtml;
+
+            // 預設將出發地指去香港(HKG)，方便日常使用
+            if (airportDatabase.some(a => a.iata === 'HKG')) {
+                fromAirportSelect.value = 'HKG';
+                updateRouteCalculations();
+            }
+        }
+
+        // 大圓距離計算公式 (Haversine Formula) - 精確算出地球兩點距離
+        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // 地球平均半徑 (公里)
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return Math.round(R * c); // 傳回整數公里數
+        }
+
+        // 監聽選單變更，自動更新距離與隱藏欄位
+        function updateRouteCalculations() {
+            const fromAp = airportDatabase.find(a => a.iata === fromAirportSelect.value);
+            const toAp = airportDatabase.find(a => a.iata === toAirportSelect.value);
+
+            if (fromAp && toAp) {
+                const dist = calculateHaversineDistance(fromAp.lat, fromAp.lon, toAp.lat, toAp.lon);
+                
+                // 寫入後台隱藏 input
+                document.getElementById('distance').value = dist;
+                document.getElementById('fromName').value = `${fromAp.city} (${fromAp.iata})`;
+                document.getElementById('fromLat').value = fromAp.lat;
+                document.getElementById('fromLon').value = fromAp.lon;
+                document.getElementById('toName').value = `${toAp.city} (${toAp.iata})`;
+                document.getElementById('toLat').value = toAp.lat;
+                document.getElementById('toLon').value = toAp.lon;
+
+                // 畫面更新顯示
+                autoDistanceDisplay.innerText = `${dist.toLocaleString()} km`;
+            } else {
+                document.getElementById('distance').value = "0";
+                autoDistanceDisplay.innerText = `0 km`;
+            }
+        }
+
+        fromAirportSelect.addEventListener('change', updateRouteCalculations);
+        toAirportSelect.addEventListener('change', updateRouteCalculations);
 
         // 初始化 3D 地球
         function initGlobe() {
@@ -241,6 +338,7 @@
                 authSection.classList.add('hidden');
                 appSection.classList.remove('hidden');
                 initGlobe();
+                fetchAirports(); // 登入成功後下載機場名單
                 loadJourneys(user.uid);
             } else {
                 currentUser = null;
@@ -282,12 +380,18 @@
             e.preventDefault();
             if (!currentUser) return;
 
+            const distVal = Number(document.getElementById('distance').value);
+            if (distVal <= 0) {
+                alert("請先選擇有效的起點和目的地機場！");
+                return;
+            }
+
             try {
                 await addDoc(collection(db, "journeys"), {
                     uid: currentUser.uid,
                     type: currentType,
                     date: document.getElementById('date').value,
-                    distance: Number(document.getElementById('distance').value),
+                    distance: distVal,
                     code: document.getElementById('code').value.toUpperCase(),
                     fromName: document.getElementById('fromName').value,
                     fromLat: Number(document.getElementById('fromLat').value),
@@ -296,8 +400,15 @@
                     toLat: Number(document.getElementById('toLat').value),
                     toLon: Number(document.getElementById('toLon').value)
                 });
+                
+                // 重設表單（只留起點為香港）
                 journeyForm.reset();
                 setType('Flight');
+                if (fromAirportSelect.querySelector('option[value="HKG"]')) {
+                    fromAirportSelect.value = 'HKG';
+                }
+                updateRouteCalculations();
+                
                 alert('行程成功同步至雲端數據庫！');
             } catch (error) {
                 console.error("儲存行程失敗:", error);
