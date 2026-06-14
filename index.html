@@ -173,7 +173,7 @@ const routeLibrary = {
         [22.3080, 113.9185],
         [30.0000, 130.0000],
         [35.6895, 139.6917]
-        
+        ]
         // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
@@ -353,21 +353,28 @@ const routeLibrary = {
         fromHubInput.addEventListener('input', updateRouteCalculations);
         toHubInput.addEventListener('input', updateRouteCalculations);
 
-        // 🌟 初始化 3D 地球（全新配色組合）
-        function initGlobe() {
-            if (globe) return;
-            globe = Globe()(document.getElementById('globeViz'))
-    .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-    .arcsData(allJourneys.filter(d => !routeLibrary[d.code])) // 沒有航線庫的用直線
-    .pathsData(allJourneys.filter(d => routeLibrary[d.code]).map(d => ({
-        coords: routeLibrary[d.code], // 讀取你啱啱建立嘅航線庫
-        color: d.type === 'Flight' ? '#ff8800' : '#00d4ff' // 根據類型設定顏色
-    })))
-    .pathColor('color')
-    .pathStroke(0.5) // 路徑線粗幼
-    .arcColor((d) => { /* 你原本嘅顏色邏輯 */ })
-    .arcStroke(0.35)
-    .arcDashAnimateTime(5000)
+// 🌟 初始化 3D 地球
+function initGlobe() {
+    if (globe) return;
+    globe = Globe()(document.getElementById('globeViz'))
+        .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+        // 沒有航線庫的用直線
+        .arcsData(allJourneys.filter(d => !routeLibrary[d.code])) 
+        // 繪製路徑
+        .pathsData(allJourneys.filter(d => routeLibrary[d.code]).map(d => ({
+            coords: routeLibrary[d.code], 
+            color: d.type === 'Flight' ? '#ff8800' : '#00d4ff'
+        })))
+        .pathColor('color')
+        .pathStroke(0.5)
+        // 修正後的顏色邏輯
+        .arcColor((d) => {
+            if (d.type === 'Flight') return '#ff8800'; // 螢光橙
+            if (d.type === 'HSR') return '#00d4ff';    // 螢光藍
+            return '#39ff14';                           // 螢光綠
+        })
+        .arcStroke(0.35)
+        .arcDashAnimateTime(5000);
             
             setTimeout(() => globe.pointOfView({ lat: 30, lng: 120, alt: 2.2 }, 1000), 500);
 
