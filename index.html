@@ -18,7 +18,7 @@
     <div id="authSection" class="min-h-screen flex items-center justify-center px-4 bg-slate-900">
         <div class="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full space-y-6">
             <div class="text-center">
-                <h2 class="text-2xl font-bold text-slate-950">🌍 旅途足跡雲端備份</h2>
+                <h2 class="text-2xl font-bold text-slate-950" id="authTitle">🌍 旅途足跡雲端備份</h2>
                 <p class="text-sm text-slate-500 mt-1" id="authSubtitle">請登入以同步及長久儲存你的紀錄</p>
             </div>
             <form id="authForm" class="space-y-4">
@@ -46,7 +46,7 @@
                 <h1 class="text-lg sm:text-xl font-bold flex items-center gap-2">🌍 全球旅途足跡 3D 雲端版</h1>
                 <div class="flex items-center gap-3">
                     <span id="userDisplay" class="text-xs text-slate-400 hidden sm:inline"></span>
-                    <button onclick="logout()" class="text-xs bg-slate-800 border border-slate-700 hover:bg-slate-700 px-3 py-1 rounded-lg">登出</button>
+                    <button id="logoutBtn" class="text-xs bg-slate-800 border border-slate-700 hover:bg-slate-700 px-3 py-1 rounded-lg">登出</button>
                 </div>
             </div>
         </header>
@@ -69,8 +69,8 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-600 mb-1">交通工具</label>
                             <div class="grid grid-cols-2 gap-2">
-                                <button type="button" id="typeFlight" onclick="setType('Flight')" class="py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600">✈️ 飛行</button>
-                                <button type="button" id="typeRail" onclick="setType('Rail')" class="py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50">🚄 鐵路</button>
+                                <button type="button" id="typeFlight" class="py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600">✈️ 飛行</button>
+                                <button type="button" id="typeRail" class="py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50">🚄 鐵路</button>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
@@ -92,8 +92,275 @@
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
                                     <input type="text" id="fromName" placeholder="出發城市 (e.g. 香港)" required class="w-full p-1 border rounded mb-1 text-xs">
-                                    <div class="flex gap-1"><input type="number" step="any" id="fromLat" placeholder="緯度" required class="w-1/2 p-0.5 border rounded text-[11px]"><input type="number" step="any" id="fromLon" placeholder="經度" required class="w-1/2 p-0.5 border rounded text-[11px]"></div>
+                                    <div class="flex gap-1">
+                                        <input type="number" step="any" id="fromLat" placeholder="緯度" required class="w-1/2 p-0.5 border rounded text-[11px]">
+                                        <input type="number" step="any" id="fromLon" placeholder="經度" required class="w-1/2 p-0.5 border rounded text-[11px]">
+                                    </div>
                                 </div>
                                 <div>
                                     <input type="text" id="toName" placeholder="目的地 (e.g. 東京)" required class="w-full p-1 border rounded mb-1 text-xs">
-                                    <div class="flex gap-1"><input type="number" step="any" id="toLat" placeholder="緯度" required class
+                                    <div class="flex gap-1">
+                                        <input type="number" step="any" id="toLat" placeholder="緯度" required class="w-1/2 p-0.5 border rounded text-[11px]">
+                                        <input type="number" step="any" id="toLon" placeholder="經度" required class="w-1/2 p-0.5 border rounded text-[11px]">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 rounded-lg text-sm transition-colors shadow-sm">➕ 新增行程紀錄</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="lg:col-span-2">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100">
+                        <h3 class="font-bold text-slate-900">📜 我的歷史行程清單</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 text-slate-500 border-b border-slate-100 text-xs font-semibold uppercase">
+                                    <th class="px-6 py-3">類型</th>
+                                    <th class="px-6 py-3">日期</th>
+                                    <th class="px-6 py-3">編號/名稱</th>
+                                    <th class="px-6 py-3">航線 (由 ➡️ 至)</th>
+                                    <th class="px-6 py-3">距離</th>
+                                    <th class="px-6 py-3 text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="journeyTableBody" class="divide-y divide-slate-100 text-slate-700">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 已自動填入你在 Kanoube-Travel-Tracker 專案的配置金鑰
+        const firebaseConfig = {
+            apiKey: "AIzaSyAW7hojp_oeupvEUOyeaLJESn_1Ri34ue0",
+            authDomain: "kanou-travel-tracker.firebaseapp.com",
+            projectId: "kanou-travel-tracker",
+            storageBucket: "kanou-travel-tracker.appspot.com",
+            messagingSenderId: "638827344678",
+            appId: "1:638827344678:web:e339aeeef730c73c3d07e7",
+            measurementId: "G-TXB2SVBC12"
+        };
+
+        // 初始化 Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // 狀態變數
+        let currentAuthMode = 'login'; 
+        let currentType = 'Flight';
+        let currentUser = null;
+        let globe = null;
+
+        // 畫面元素綁定
+        const authSection = document.getElementById('authSection');
+        const appSection = document.getElementById('appSection');
+        const authForm = document.getElementById('authForm');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authBtn = document.getElementById('authBtn');
+        const authTitle = document.getElementById('authTitle');
+        const authSubtitle = document.getElementById('authSubtitle');
+        const switchAuthMode = document.getElementById('switchAuthMode');
+        const userDisplay = document.getElementById('userDisplay');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const journeyForm = document.getElementById('journeyForm');
+
+        // 初始化 3D 地球
+        function initGlobe() {
+            if (globe) return;
+            globe = Globe()(document.getElementById('globeViz'))
+                .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
+                .arcsData([])
+                .arcColor(() => '#6366f1')
+                .arcAltitude(0.2)
+                .arcStroke(1.5)
+                .arcDashLength(0.4)
+                .arcDashGap(0.2)
+                .arcDashAnimateTime(2000);
+            
+            setTimeout(() => {
+                globe.pointOfView({ lat: 22.3, lng: 114.1, alt: 2.5 }, 1000);
+            }, 500);
+        }
+
+        // 切換 登入 / 註冊 介面模式
+        switchAuthMode.addEventListener('click', () => {
+            if (currentAuthMode === 'login') {
+                currentAuthMode = 'register';
+                authTitle.innerText = '✨ 註冊新帳號';
+                authSubtitle.innerText = '建立您的足跡雲端帳戶';
+                authBtn.innerText = '註冊新帳號';
+                switchAuthMode.innerText = '已有帳號？按此登入';
+            } else {
+                currentAuthMode = 'login';
+                authTitle.innerText = '🌍 旅途足跡雲端備份';
+                authSubtitle.innerText = '請登入以同步及長久儲存你的紀錄';
+                authBtn.innerText = '登入';
+                switchAuthMode.innerText = '未有帳號？按此註冊';
+            }
+        });
+
+        // 處理 表單遞交 (登入/註冊)
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = authEmail.value;
+            const password = authPassword.value;
+
+            try {
+                if (currentAuthMode === 'register') {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    alert('帳號註冊成功！已自動為您登入。');
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                console.error("驗證發生錯誤:", error);
+                alert('操作失敗: ' + error.message);
+            }
+        });
+
+        // 監聽用戶登入狀態
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                userDisplay.innerText = `👤 ${user.email}`;
+                userDisplay.classList.remove('hidden');
+                authSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                initGlobe();
+                loadJourneys(user.uid);
+            } else {
+                currentUser = null;
+                authSection.classList.remove('hidden');
+                appSection.classList.add('hidden');
+            }
+        });
+
+        // 登出功能
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                authForm.reset();
+                currentAuthMode = 'login';
+            });
+        });
+
+        // 交通工具切換
+        window.setType = function(type) {
+            currentType = type;
+            const btnFlight = document.getElementById('typeFlight');
+            const btnRail = document.getElementById('typeRail');
+            const codeLabel = document.getElementById('codeLabel');
+
+            if (type === 'Flight') {
+                btnFlight.className = "py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600";
+                btnRail.className = "py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
+                codeLabel.innerText = "航班編號";
+            } else {
+                btnRail.className = "py-2 rounded-lg font-medium border text-center text-sm bg-indigo-50 border-indigo-600 text-indigo-600";
+                btnFlight.className = "py-2 rounded-lg font-medium border text-center text-sm bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
+                codeLabel.innerText = "列車車次";
+            }
+        }
+        document.getElementById('typeFlight').addEventListener('click', () => setType('Flight'));
+        document.getElementById('typeRail').addEventListener('click', () => setType('Rail'));
+
+        // 遞交新增行程資料至 Firestore
+        journeyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            try {
+                await addDoc(collection(db, "journeys"), {
+                    uid: currentUser.uid,
+                    type: currentType,
+                    date: document.getElementById('date').value,
+                    distance: Number(document.getElementById('distance').value),
+                    code: document.getElementById('code').value.toUpperCase(),
+                    fromName: document.getElementById('fromName').value,
+                    fromLat: Number(document.getElementById('fromLat').value),
+                    fromLon: Number(document.getElementById('fromLon').value),
+                    toName: document.getElementById('toName').value,
+                    toLat: Number(document.getElementById('toLat').value),
+                    toLon: Number(document.getElementById('toLon').value)
+                });
+                journeyForm.reset();
+                setType('Flight');
+                alert('行程成功同步至雲端數據庫！');
+            } catch (error) {
+                console.error("儲存行程失敗:", error);
+                alert("儲存失敗: " + error.message);
+            }
+        });
+
+        // 即時從 Firestore 載入數據並更新地球和清單
+        function loadJourneys(uid) {
+            const q = query(collection(db, "journeys"), where("uid", "==", uid));
+            onSnapshot(q, (snapshot) => {
+                const journeys = [];
+                let totalDistance = 0;
+                const tableBody = document.getElementById('journeyTableBody');
+                tableBody.innerHTML = '';
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    data.id = doc.id;
+                    journeys.push(data);
+                    totalDistance += data.distance;
+
+                    // 渲染表格 HTML
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-colors";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-medium">${data.type === 'Flight' ? '✈️ 飛行' : '🚄 鐵路'}</td>
+                        <td class="px-6 py-4 text-slate-500">${data.date}</td>
+                        <td class="px-6 py-4 font-mono text-xs">${data.code}</td>
+                        <td class="px-6 py-4">${data.fromName} ➡️ ${data.toName}</td>
+                        <td class="px-6 py-4 text-slate-500">${data.distance} km</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="deleteJourney('${data.id}')" class="text-xs text-red-600 hover:text-red-800 font-medium">刪除</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+
+                // 更新數據看板
+                document.getElementById('totalCount').innerText = `總行程: ${journeys.length} 條`;
+                document.getElementById('totalDist').innerText = `總距離: ${totalDistance.toLocaleString()} km`;
+
+                // 將數據餵給 3D 地球畫弧線
+                const arcs = journeys.map(j => ({
+                    startLat: j.fromLat,
+                    startLng: j.fromLon,
+                    endLat: j.toLat,
+                    endLng: j.toLon
+                }));
+                if (globe) globe.arcsData(arcs);
+            });
+        }
+
+        // 刪除行程
+        window.deleteJourney = async function(id) {
+            if (confirm('確定要永久刪除此條行程備份嗎？')) {
+                try {
+                    await deleteDoc(doc(db, "journeys", id));
+                } catch (error) {
+                    alert('刪除失敗: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
